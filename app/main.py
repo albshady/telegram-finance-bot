@@ -12,9 +12,6 @@ bot = telebot.TeleBot(API_TOKEN)
 server = Flask(__name__)
 
 
-# TODO: add id field for every model
-
-
 @server.route('/', methods=['GET'])
 def index():
     return '<h1>Bot welcomes you!</h1>'
@@ -101,11 +98,12 @@ def add_expense(message: types.Message):
     try:
         expense = message_serializer.add_expense(message.text)
     except exceptions.NotCorrectMessage as e:
-        bot.send_message(message.chat.id, str(e))
-        return
-    answer = (
-        f"Добавлены траты {expense.amount} руб на {expense.category_name}.\n\n"
-        f"{message_serializer.get_today_statistics()}")
+        answer = str(e)
+    else:
+        answer = (
+            f"Добавлены траты {expense.amount} руб на {expense.category_name}.\n\n"
+            f"{message_serializer.get_today_statistics()}"
+        )
     bot.send_message(message.chat.id, answer)
 
 
