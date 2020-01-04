@@ -1,10 +1,4 @@
-finance.db
-**/.DS_Store
 .idea/
-**/__pycache__
-*.log
-*.pickle
-*.pid
-*.out
-.ipynb_checkpoints
-env/
+venv/
+client_secret.json
+webhook.txt
