@@ -8,22 +8,56 @@ import pytz
 from . import exceptions, spreadsheet, settings
 
 
+MONTHS_MAP = {
+    1: 'январе',
+    2: 'феврале',
+    3: 'марте',
+    4: 'апреле',
+    5: 'мае',
+    6: 'июне',
+    7: 'июле',
+    8: 'августе',
+    9: 'сентябре',
+    10: 'октябре',
+    11: 'ноябре',
+    12: 'декабре',
+}
+
+
 class Message(NamedTuple):
     """Структура распаршенного сообщения о новом расходе"""
+    is_expense: bool
     amount: int
     category_text: str
     description: str
 
 
+def add_income(raw_message: str) -> spreadsheet.Income:
+
+    parsed_message = _parse_expense_message(raw_message)
+    categories = spreadsheet.get_categories(of_expenses=False)
+
+    category = parsed_message.category_text.title() if parsed_message.category_text.title() in categories else 'Другое'
+
+    inserted = spreadsheet.insert(
+        date_str=_get_now_formatted(),
+        amount=parsed_message.amount,
+        description=parsed_message.description,
+        category_name=category,
+        is_expense=False,
+    )
+    return inserted
+
+
 def add_expense(raw_message: str) -> spreadsheet.Expense:
     """Добавляет новое сообщение.
     Принимает на вход текст сообщения, пришедшего в бот."""
-    parsed_message = _parse_message(raw_message)
+    parsed_message = _parse_expense_message(raw_message)
     categories = spreadsheet.get_categories(of_expenses=True)
 
     category = parsed_message.category_text.title() if parsed_message.category_text.title() in categories else 'Другое'
 
-    inserted = spreadsheet.insert_expense(
+    inserted = spreadsheet.insert(
         date_str=_get_now_formatted(),
         amount=parsed_message.amount,
         description=parsed_message.description,
@@ -34,33 +68,42 @@ def add_expense(raw_message: str) -> spreadsheet.Expense:
 
 def get_today_statistics() -> str:
     """Возвращает строкой статистику расходов за сегодня"""
-    result = spreadsheet.get_expenses_sum(until=datetime.date.today(), number_of_days=1)
-    # base_today_expenses = result[0] if result[0] else 0
-    return (f"Расходы сегодня: {result} {settings.CURRENCY}.\n"
-            f"За текущий месяц: /month")
+    until = datetime.date.today()
+
+    expenses = spreadsheet.get_latest_items_sum(until=until, days=1, of_expenses=True)
+    incomes = spreadsheet.get_latest_items_sum(until=until, days=1, of_expenses=False)
+    return (
+        f"Расходы сегодня: {expenses} {settings.CURRENCY}.\n"
+        f"Доходы сегодня: {incomes} {settings.CURRENCY}.\n"
+        f"Итого: {incomes - expenses} {settings.CURRENCY}"
+        f"За текущий месяц: /month"
+    )
 
 
 def get_month_statistics() -> str:
     """Возвращает строкой статистику расходов за текущий месяц"""
-    result = spreadsheet.get_expenses_sum(until=datetime.date.today(), number_of_days=datetime.date.today().day)
-    # base_today_expenses = result[0] if result[0] else 0
+    until = datetime.date.today()
+    day = datetime.date.today().day
+    current_month = MONTHS_MAP[datetime.date.today().month]
+
+    expenses = spreadsheet.get_latest_items_sum(until=until, days=day, of_expenses=True)
+    incomes = spreadsheet.get_latest_items_sum(until=until, days=day, of_expenses=False)
     return (
-        f"Расходы в текущем месяце:\n"
-        f"всего — {result} {settings.CURRENCY}\n"
-        # f"базовые — {base_today_expenses} {CURRENCY}. из "
-        # f"{now.day * _get_budget_limit()} {CURRENCY}"
+        f"Расходы в {current_month}: {expenses} {settings.CURRENCY}.\n"
+        f"Доходы в {current_month}: {incomes} {settings.CURRENCY}.\n"
+        f"Итого: {incomes - expenses} {settings.CURRENCY}"
     )
 
 
 def get_latest(number=5) -> str:
     """Возвращает последние несколько расходов"""
-    gen = spreadsheet.get_latest_expenses(number)
+    gen = spreadsheet.get_latest_items(number)
     latest = {row: expense for expense, row in gen}
-    message = 'Последние сохранённые траты:\n\n'
+    message = "Последние сохранённые траты:\n\n"
     for key in latest.keys():
         expense = latest[key]
-        message += f'{expense.date}: {expense.amount} {settings.CURRENCY} на {expense.category_name} ' \
-                   f'— нажми /del{key} для удаления\n\n'
+        message += (f"{expense.date}: {expense.amount} {settings.CURRENCY} на {expense.category_name} "
+                    f"— нажми /del{key} для удаления\n\n")
     return message
 
 
@@ -69,11 +112,11 @@ def delete_expense(id: int) -> str:
     try:
         spreadsheet.delete_expense(id)
     except exceptions.IncorrectId:
-        message = 'Пожалуйста, введи корректный id записи'
+        message = "Пожалуйста, введи корректный id записи"
     except ValueError:
-        message = f'Записи о расходе с id={id} не существует'
+        message = f"Записи о расходе с id={id} не существует"
     else:
-        message = 'Удалено!'
+        message = "Удалено!"
     return message
 
 
@@ -83,9 +126,9 @@ def get_categories(global_categories: bool = True, of_expenses: bool = True) -> 
     return message
 
 
-def _parse_message(raw_message: str) -> Message:
-    """Парсит текст пришедшего сообщения о новом расходе."""
-    regexp_result = re.match(r"([\d]+)\s*(\S*)\s*(\(.*\))?", raw_message)
+def _parse_expense_message(raw_message: str) -> Message:
+    """Парсит текст пришедшего сообщения о новом расходе или доходе"""
+    regexp_result = re.match(r'^(\\i)?\s*([\d]+)\s*(\S*)\s*(\(.*\))?$', raw_message)
     if not regexp_result or not regexp_result.group(0) \
             or not regexp_result.group(1) or not regexp_result.group(2):
         raise exceptions.NotCorrectMessage(
@@ -93,12 +136,13 @@ def _parse_message(raw_message: str) -> Message:
             "например:\n1500 такси"
         )
 
-    amount = regexp_result.group(1).replace(" ", "")
-    category_text = regexp_result.group(2).strip().lower()
-    description = regexp_result.group(3)
+    is_expense = False if regexp_result.group(1) else True
+    amount = regexp_result.group(2).replace(" ", "")
+    category_text = regexp_result.group(3).strip().lower()
+    description = regexp_result.group(4)
     if description:
         description = description.strip()[1:-1].lower()
-    return Message(amount=int(amount), category_text=category_text, description=description)
+    return Message(is_expense=is_expense, amount=int(amount), category_text=category_text, description=description)
 
 
 def _get_now_formatted() -> str:

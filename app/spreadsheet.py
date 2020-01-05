@@ -6,8 +6,7 @@ from typing import NamedTuple, List, Tuple
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 
-from . import settings
-from . import exceptions
+from app import settings, exceptions
 
 scope = [
     "https://spreadsheets.google.com/feeds",
@@ -28,8 +27,7 @@ incomes_sheet = client.open(settings.SHEET_NAME).get_worksheet(settings.SHEETS.g
 categories_sheet = client.open(settings.SHEET_NAME).get_worksheet(settings.SHEETS.get('categories'))
 
 
-class Expense(NamedTuple):
-    """Structure of an expense added to Google Spreadsheets"""
+class SpreadsheetItem(NamedTuple):
     id: int
     date: str
     amount: int
@@ -37,70 +35,84 @@ class Expense(NamedTuple):
     category_name: str
 
 
-def insert_expense(date_str: str, amount: int, description: str, category_name: str) -> Expense:
-    latest, _ = next(get_latest_expenses())
+class Expense(SpreadsheetItem):
+    """Structure of an expense added to Google Spreadsheets"""
+
+
+class Income(SpreadsheetItem):
+    """Structure of an income added to Google Spreadsheets"""
+
+
+def insert(date_str: str, amount: int, description: str, category_name: str, is_expense=True) -> Expense or Income:
+    klass = Expense if is_expense else Income
+
+    latest, _ = next(get_latest_items(of_expenses=True))
     id = 1 if latest.id == '' else int(latest.id) + 1
-    expense = Expense(*[id, date_str, amount, description, category_name])
-    expenses_sheet.insert_row(expense, index=2)
-    return expense
+    item = klass(*[id, date_str, amount, description, category_name])
+    expenses_sheet.insert_row(item, index=settings.FIRST_ROW)
+    return item
 
 
 def delete_expense(id: int) -> Expense:
-    g = get_latest_expenses()
-    latest, row = next(g)
+    g = get_latest_items()
+    latest, row_number = next(g)
     if id < 1:
         raise exceptions.IncorrectId('id must be > 0')
     while latest.id != '' and int(latest.id) > id:
-        latest, row = next(g)
+        latest, row_number = next(g)
     if latest.id == '' or int(latest.id) < id:
         raise ValueError(f'No expense with id={id}')
     else:
-        expenses_sheet.delete_row(row)
+        expenses_sheet.delete_row(row_number)
         return latest
 
 
-""" No need in this func since the following one is doing the same thing
-def get_latest_expenses(number: int = 5) -> Dict[int, Expense]:
-    return {row: Expense(*[expenses_sheet.cell(row, col).value for col in range(1, 6)]) for row in range(2, 2 + number)}
-"""
+def get_latest_items(count: int = None, of_expenses: bool = True) -> Tuple[Expense or Income, int]:
+    row_number = settings.FIRST_ROW
+    (klass, sheet) = (Expense, expenses_sheet) if of_expenses else (Income, incomes_sheet)
 
-
-def get_latest_expenses(count: int = None) -> Tuple[Expense, int]:
-    row = 2
-    expense = Expense(*[expenses_sheet.cell(row, col).value for col in range(1, 6)])
     if count and count <= 0:
         raise AttributeError('Count must be > 0')
-    while expense.id != '':
-        yield (expense, row)
-        row += 1
-        expense = Expense(*[expenses_sheet.cell(row, col).value for col in range(1, 6)])
+    item = klass(*[sheet.cell(row_number, col).value for col in range(1, 6)])
+
+    while item.id != '':
+        yield (item, row_number)
+        row_number += 1
+        item = klass(*[sheet.cell(row_number, col).value for col in range(1, 6)])
         if count:
             count -= 1
             if count <= 0:
                 break
 
 
-def get_expenses_sum(until: datetime.date = datetime.date.today(), number_of_days: int = 1) -> int:
-    # TODO: rewrite this func
-    expenses_sum = 0
-    g = get_latest_expenses()
+def get_latest_items_sum(until: datetime.date = datetime.date.today(), days: int = 1, of_expenses: bool = True) -> int:
+    items_sum = 0
+    g = get_latest_items(of_expenses=of_expenses)
 
     latest, _ = next(g)
-    current_day = datetime.date(*[int(latest.date.split('.')[i]) for i in range(2, -1, -1)])
-    while current_day > (until - datetime.timedelta(days=number_of_days)):
-        expenses_sum += int(latest.amount)
-        latest, _ = next(g)
-        if len(latest.date.split('.')) < 3:
+    latest_date = latest.date.split('.')
+    if len(latest_date) < 3:
+        return items_sum
+
+    current_day = datetime.date(*([int(param) for param in reversed(latest_date)]))
+    checkpoint = until - datetime.timedelta(days=days)
+
+    while current_day > checkpoint:
+        items_sum += int(latest.amount)
+        try:
+            latest, _ = next(g)
+        except StopIteration:
             break
-        current_day = datetime.date(*[int(latest.date.split('.')[i]) for i in range(2, -1, -1)])
-    return expenses_sum
+        else:
+            latest_date = latest.date.split('.')
+            if len(latest_date) < 3:
+                break
+            current_day = datetime.date(*([int(param) for param in reversed(latest_date)]))
+
+    return items_sum
 
 
 def get_categories(global_categories: bool = True, of_expenses: bool = True) -> List[str]:
     if global_categories:
         col = 1 if of_expenses else 3
         return sorted(categories_sheet.col_values(col))[:-1]
-
-
-if __name__ == '__main__':
-    print(get_latest_expenses())

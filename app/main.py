@@ -89,6 +89,19 @@ def del_expense(message: types.Message):
     bot.reply_to(message, answer)
 
 
+@bot.message_handler(func=lambda message: message.text.startswith('/i '))
+@is_mine
+def add_income(message: types.Message):
+    """Добавляет новый доход"""
+    try:
+        income = message_serializer.add_income(message.text)
+    except exceptions.NotCorrectMessage as e:
+        answer = str(e)
+    else:
+        answer = f"Добавлен доход {income.amount} руб на {income.category_name}.\n\n"
+    bot.send_message(message.chat.id, answer)
+
+
 @bot.message_handler(func=lambda message: True)
 @is_mine
 def add_expense(message: types.Message):
