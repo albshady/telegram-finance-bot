@@ -5,7 +5,7 @@ import telebot
 from flask import Flask, request
 from telebot import types
 
-from app import message_serializer, exceptions
+from app import message_serializer, exceptions, settings
 
 API_TOKEN = os.environ.get('API_TOKEN')
 bot = telebot.TeleBot(API_TOKEN)
@@ -27,7 +27,7 @@ def webhook():
 
 def is_mine(handler):
     def wrapper(message):
-        if int(message.chat.id) != 309531723:
+        if int(message.chat.id) != settings.AUTHOR_ID:
             bot.send_message(message.chat.id, 'Permission denied')
         return handler(message)
     return wrapper
@@ -48,7 +48,7 @@ def send_welcome(message: types.Message):
 
 
 @bot.message_handler(commands=['categories'])
-# @is_mine
+@is_mine
 def categories_list(message: types.Message):
     """Отправляет список категорий расходов"""
     answer = message_serializer.get_categories(global_categories=True, of_expenses=True)
@@ -56,13 +56,11 @@ def categories_list(message: types.Message):
 
 
 @bot.message_handler(commands=['today'])
-# @is_mine
+@is_mine
 def today_statistics(message: types.Message):
     """Отправляет сегодняшнюю статистику трат"""
-    print("we're here")
     answer = message_serializer.get_today_statistics()
     bot.send_message(message.chat.id, answer)
-    # bot.send_message(message.chat.id, 'nice')
 
 
 @bot.message_handler(commands=['month'])
