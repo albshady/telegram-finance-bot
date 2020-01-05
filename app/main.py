@@ -37,22 +37,22 @@ def is_mine(handler):
 @is_mine
 def send_welcome(message: types.Message):
     """Отправляет приветственное сообщение и помощь по боту"""
-    bot.reply_to(message, text=
-                 "Бот для учёта финансов\n\n"
-                 "Добавить расход: 250 такси\n"
-                 "Сегодняшняя статистика: /today\n"
-                 "За текущий месяц: /month\n"
-                 "Последние внесённые расходы: /expenses\n"
-                 "Категории трат: /categories"
-                 )
+    bot.send_message(message.chat.id, text=
+                     "Бот для учёта финансов\n\n"
+                     "Добавить расход: 250 такси\n"
+                     "Сегодняшняя статистика: /today\n"
+                     "За текущий месяц: /month\n"
+                     "Последние внесённые расходы: /expenses\n"
+                     "Категории трат: /categories"
+                     )
 
 
 @bot.message_handler(commands=['categories'])
 @is_mine
 def categories_list(message: types.Message):
     """Отправляет список категорий расходов"""
-    answer = message_serializer.get_categories(global_categories=True, of_expenses=True)
-    bot.send_message(message.chat.id, answer)
+    answer = message_serializer.get_categories(global_categories=True)
+    bot.send_message(message.chat.id, answer, parse_mode='Markdown')
 
 
 @bot.message_handler(commands=['today'])

@@ -34,7 +34,7 @@ class Message(NamedTuple):
 
 def add_income(raw_message: str) -> spreadsheet.Income:
 
-    parsed_message = _parse_expense_message(raw_message)
+    parsed_message = _parse_message(raw_message)
     categories = spreadsheet.get_categories(of_expenses=False)
 
     category = parsed_message.category_text.title() if parsed_message.category_text.title() in categories else 'Другое'
@@ -52,7 +52,7 @@ def add_income(raw_message: str) -> spreadsheet.Income:
 def add_expense(raw_message: str) -> spreadsheet.Expense:
     """Добавляет новое сообщение.
     Принимает на вход текст сообщения, пришедшего в бот."""
-    parsed_message = _parse_expense_message(raw_message)
+    parsed_message = _parse_message(raw_message)
     categories = spreadsheet.get_categories(of_expenses=True)
 
     category = parsed_message.category_text.title() if parsed_message.category_text.title() in categories else 'Другое'
@@ -62,6 +62,7 @@ def add_expense(raw_message: str) -> spreadsheet.Expense:
         amount=parsed_message.amount,
         description=parsed_message.description,
         category_name=category,
+        is_expense=True,
     )
     return inserted
 
@@ -75,7 +76,7 @@ def get_today_statistics() -> str:
     return (
         f"Расходы сегодня: {expenses} {settings.CURRENCY}.\n"
         f"Доходы сегодня: {incomes} {settings.CURRENCY}.\n"
-        f"Итого: {incomes - expenses} {settings.CURRENCY}"
+        f"Итого: {incomes - expenses} {settings.CURRENCY}\n"
         f"За текущий месяц: /month"
     )
 
@@ -120,21 +121,34 @@ def delete_expense(id: int) -> str:
     return message
 
 
-def get_categories(global_categories: bool = True, of_expenses: bool = True) -> str:
-    categories = spreadsheet.get_categories(global_categories=global_categories, of_expenses=of_expenses)
-    message = "Категории трат:\n\n".join([c + '\n' for c in categories])
+def get_categories(global_categories: bool = True) -> str:
+    expense_categories = spreadsheet.get_categories(global_categories=global_categories, of_expenses=True)
+    income_categories = spreadsheet.get_categories(global_categories=global_categories, of_expenses=False)
+    print(expense_categories)
+    print(income_categories)
+    message = "*Категории трат:*\n\n"
+    message += ''.join([f'- {c}\n' for c in expense_categories])
+    message += "\n\n*Категории доходов:*\n\n"
+    message += ''.join([f'- {c}\n' for c in income_categories])
     return message
 
 
-def _parse_expense_message(raw_message: str) -> Message:
+def _parse_message(raw_message: str) -> Message:
     """Парсит текст пришедшего сообщения о новом расходе или доходе"""
-    regexp_result = re.match(r'^(\\i)?\s*([\d]+)\s*(\S*)\s*(\(.*\))?$', raw_message)
-    if not regexp_result or not regexp_result.group(0) \
-            or not regexp_result.group(1) or not regexp_result.group(2):
-        raise exceptions.NotCorrectMessage(
-            "Не могу понять сообщение. Напишите сообщение в формате, "
-            "например:\n1500 такси"
-        )
+    regexp_result = re.match(r'^(/i)?\s*([\d]+)\s*(\S*)\s*(\(.*\))?$', raw_message)  # should be .* instead of \S*
+
+    if not regexp_result or not regexp_result.group(2) or not regexp_result.group(3):
+        if regexp_result and regexp_result.group(1):
+            error_message = (
+                "Не могу понять сообщение. Напишите сообщение в формате, "
+                "например:\n\\i 1500 стипендия"
+            )
+        else:
+            error_message = (
+                "Не могу понять сообщение. Напишите сообщение в формате, "
+                "например:\n1500 такси"
+            )
+        raise exceptions.NotCorrectMessage(error_message)
 
     is_expense = False if regexp_result.group(1) else True
     amount = regexp_result.group(2).replace(" ", "")

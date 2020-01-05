@@ -44,12 +44,12 @@ class Income(SpreadsheetItem):
 
 
 def insert(date_str: str, amount: int, description: str, category_name: str, is_expense=True) -> Expense or Income:
-    klass = Expense if is_expense else Income
+    (klass, sheet) = (Expense, expenses_sheet) if is_expense else (Income, incomes_sheet)
 
     latest, _ = next(get_latest_items(of_expenses=True))
     id = 1 if latest.id == '' else int(latest.id) + 1
     item = klass(*[id, date_str, amount, description, category_name])
-    expenses_sheet.insert_row(item, index=settings.FIRST_ROW)
+    sheet.insert_row(item, index=settings.FIRST_ROW)
     return item
 
 
@@ -89,7 +89,10 @@ def get_latest_items_sum(until: datetime.date = datetime.date.today(), days: int
     items_sum = 0
     g = get_latest_items(of_expenses=of_expenses)
 
-    latest, _ = next(g)
+    try:
+        latest, _ = next(g)
+    except StopIteration:
+        return items_sum
     latest_date = latest.date.split('.')
     if len(latest_date) < 3:
         return items_sum
