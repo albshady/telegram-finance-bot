@@ -40,10 +40,11 @@ def send_welcome(message: types.Message):
     bot.send_message(message.chat.id, text=
                      "Бот для учёта финансов\n\n"
                      "Добавить расход: 250 такси\n"
+                     "Добавить доход: 1000 зарплата\n"
                      "Сегодняшняя статистика: /today\n"
                      "За текущий месяц: /month\n"
                      "Последние внесённые расходы: /expenses\n"
-                     "Категории трат: /categories"
+                     "Категории трат и доходов: /categories"
                      )
 
 
@@ -98,7 +99,10 @@ def add_income(message: types.Message):
     except exceptions.NotCorrectMessage as e:
         answer = str(e)
     else:
-        answer = f"Добавлен доход {income.amount} руб на {income.category_name}.\n\n"
+        answer = (
+            f"Добавлен доход {income.amount} руб на {income.category_name}.\n\n"
+            f"{message_serializer.get_today_statistics()}"
+        )
     bot.send_message(message.chat.id, answer)
 
 

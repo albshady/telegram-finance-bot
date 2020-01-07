@@ -48,7 +48,14 @@ def insert(date_str: str, amount: int, description: str, category_name: str, is_
 
     latest, _ = next(get_latest_items(of_expenses=True))
     id = 1 if latest.id == '' else int(latest.id) + 1
-    item = klass(*[id, date_str, amount, description, category_name])
+    categories = get_categories(of_expenses=is_expense)
+    print(categories)
+    if category_name in categories:
+        category = category_name
+    else:
+        category = 'Другое'
+        description = f'({category_name}) {description}'
+    item = klass(*[id, date_str, amount, description, category])
     sheet.insert_row(item, index=settings.FIRST_ROW)
     return item
 
@@ -118,4 +125,4 @@ def get_latest_items_sum(until: datetime.date = datetime.date.today(), days: int
 def get_categories(global_categories: bool = True, of_expenses: bool = True) -> List[str]:
     if global_categories:
         col = 1 if of_expenses else 3
-        return sorted(categories_sheet.col_values(col))[:-1]
+        return sorted(categories_sheet.col_values(col)[1:])

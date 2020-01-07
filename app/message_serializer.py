@@ -73,10 +73,12 @@ def get_today_statistics() -> str:
 
     expenses = spreadsheet.get_latest_items_sum(until=until, days=1, of_expenses=True)
     incomes = spreadsheet.get_latest_items_sum(until=until, days=1, of_expenses=False)
+    difference = incomes - expenses
+    sign = '+' if difference >= 0 else '-'
     return (
         f"Расходы сегодня: {expenses} {settings.CURRENCY}.\n"
         f"Доходы сегодня: {incomes} {settings.CURRENCY}.\n"
-        f"Итого: {incomes - expenses} {settings.CURRENCY}\n"
+        f"Итого: {sign}{abs(difference)} {settings.CURRENCY}\n"
         f"За текущий месяц: /month"
     )
 
@@ -89,10 +91,12 @@ def get_month_statistics() -> str:
 
     expenses = spreadsheet.get_latest_items_sum(until=until, days=day, of_expenses=True)
     incomes = spreadsheet.get_latest_items_sum(until=until, days=day, of_expenses=False)
+    difference = incomes - expenses
+    sign = '+' if difference >= 0 else '-'
     return (
         f"Расходы в {current_month}: {expenses} {settings.CURRENCY}.\n"
         f"Доходы в {current_month}: {incomes} {settings.CURRENCY}.\n"
-        f"Итого: {incomes - expenses} {settings.CURRENCY}"
+        f"Итого: {sign}{difference} {settings.CURRENCY}"
     )
 
 
@@ -135,7 +139,7 @@ def get_categories(global_categories: bool = True) -> str:
 
 def _parse_message(raw_message: str) -> Message:
     """Парсит текст пришедшего сообщения о новом расходе или доходе"""
-    regexp_result = re.match(r'^(/i)?\s*([\d]+)\s*(\S*)\s*(\(.*\))?$', raw_message)  # should be .* instead of \S*
+    regexp_result = re.match(r'^(/i)?\s*([\d]+)\s*([^(]*)\s*(\(.*\))?$', raw_message)  # should be .* instead of \S*
 
     if not regexp_result or not regexp_result.group(2) or not regexp_result.group(3):
         if regexp_result and regexp_result.group(1):
