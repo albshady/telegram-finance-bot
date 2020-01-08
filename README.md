@@ -1,22 +1,14 @@
-Telegram бот для учёта личных расходов и ведения бюджета, [видео с пояснениями по коду и описание](https://www.youtube.com/watch?v=Kh16iosOTIQ).
+Telegram бот для учёта личных расходов и ведения бюджета, вдохновленный 
+[данным великолепным видео](https://www.youtube.com/watch?v=Kh16iosOTIQ),
+но, в отличие от [первоисточника](https://github.com/alexey-goloburdin/telegram-finance-bot), 
+вместо `SQLite` используется `Google Spreadsheets`, так как мне показалось это более удобным для последующей аналитики.
 
 
-В переменных окружения надо проставить API токен бота, а также адрес proxy и логин-пароль к ней.
+В переменных окружения надо проставить API токен бота, а также словарь, [полученный для доступа к Google Drive API].
 
-`TELEGRAM_API_TOKEN` — API токен бота
+`API_TOKEN` — API токен бота
 
-`TELEGRAM_PROXY_URL` — URL прокси сервера
+`CREDS` — словарь с данными API
 
-`TELEGRAM_PROXY_LOGIN` — логин прокси сервера
-
-`TELEGRAM_PROXY_PASSWORD` — пароль прокси сервера
-
-`TELEGRAM_ACCESS_ID` — ID Telegram аккаунта, от которого будут приниматься сообщения (сообщения от остальных аккаунтов игнорируются)
-
-Использование с Docker показано ниже. Предварительно заполните ENV переменные, указанные выше, в Dockerfile, а также в команде запуска укажите локальную директорию с проектом вместо `local_project_path`. SQLite база данных будет лежать в папке проекта `db/finance.db`.
-
-```
-docker build -t tgfinance ./
-docker run -d --name tg -v /local_project_path/db:/home/db tgfinance
-docker run -ti --name tg tgfinance
-```
+Для более точной настройки бота можете изучить константы в файле `settings.py`.
+[Таблица для мониторинга изменений](https://docs.google.com/spreadsheets/d/1xBJutyuL4vJp0C_3T7cXQgOO-wLx-dbrHUxtJNiUjvM/edit?usp=sharing)
