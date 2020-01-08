@@ -74,18 +74,31 @@ def delete_expense(id: int) -> Expense:
         return latest
 
 
+def transform_params(params: list) -> List:
+    amount = params.pop(2)
+    try:
+        amount = int(amount)
+    except ValueError:
+        amount = int(amount[:-1])
+    params.insert(2, amount)
+    return params
+
+
 def get_latest_items(count: int = None, of_expenses: bool = True) -> Tuple[Expense or Income, int]:
     row_number = settings.FIRST_ROW
     (klass, sheet) = (Expense, expenses_sheet) if of_expenses else (Income, incomes_sheet)
 
     if count and count <= 0:
         raise AttributeError('Count must be > 0')
-    item = klass(*[sheet.cell(row_number, col).value for col in range(1, 6)])
+
+    params = [sheet.cell(row_number, col).value for col in range(1, 6)]
+    item = klass(*transform_params(params))
 
     while item.id != '':
         yield (item, row_number)
         row_number += 1
-        item = klass(*[sheet.cell(row_number, col).value for col in range(1, 6)])
+        params = [sheet.cell(row_number, col).value for col in range(1, 6)]
+        item = klass(*transform_params(params))
         if count:
             count -= 1
             if count <= 0:

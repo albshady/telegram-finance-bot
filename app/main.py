@@ -99,8 +99,12 @@ def add_income(message: types.Message):
     except exceptions.NotCorrectMessage as e:
         answer = str(e)
     else:
+        try:
+            amount = int(income.amount)
+        except ValueError:
+            amount = int(income.amount[:-1])
         answer = (
-            f"Добавлен доход {income.amount} руб на {income.category_name}.\n\n"
+            f"Добавлен доход {amount} {settings.CURRENCY} на {income.category_name}.\n\n"
             f"{message_serializer.get_today_statistics()}"
         )
     bot.send_message(message.chat.id, answer)
@@ -115,8 +119,12 @@ def add_expense(message: types.Message):
     except exceptions.NotCorrectMessage as e:
         answer = str(e)
     else:
+        try:
+            amount = int(expense.amount)
+        except ValueError:
+            amount = int(expense.amount[:-1])
         answer = (
-            f"Добавлены траты {expense.amount} руб на {expense.category_name}.\n\n"
+            f"Добавлены траты {amount} {settings.CURRENCY} на {expense.category_name}.\n\n"
             f"{message_serializer.get_today_statistics()}"
         )
     bot.send_message(message.chat.id, answer)

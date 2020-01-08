@@ -108,7 +108,7 @@ def get_latest(number=5) -> str:
     for key in latest.keys():
         expense = latest[key]
         message += (f"{expense.date}: {expense.amount} {settings.CURRENCY} на {expense.category_name} "
-                    f"— нажми /del{key} для удаления\n\n")
+                    f"— нажми /del{expense.id} для удаления\n\n")
     return message
 
 
