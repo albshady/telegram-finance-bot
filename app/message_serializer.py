@@ -96,7 +96,7 @@ def get_month_statistics() -> str:
     return (
         f"Расходы в {current_month}: {expenses} {settings.CURRENCY}.\n"
         f"Доходы в {current_month}: {incomes} {settings.CURRENCY}.\n"
-        f"Итого: {sign}{difference} {settings.CURRENCY}"
+        f"Итого: {sign}{abs(difference)} {settings.CURRENCY}"
     )
 
 

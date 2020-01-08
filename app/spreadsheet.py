@@ -74,13 +74,25 @@ def delete_expense(id: int) -> Expense:
         return latest
 
 
-def transform_params(params: list) -> List:
-    amount = params.pop(2)
+def transform_amount(amount_raw: str) -> int:
     try:
-        amount = int(amount)
+        amount = int(amount_raw)
     except ValueError:
-        amount = int(amount[:-1])
-    params.insert(2, amount)
+        amount = ''
+        for letter in amount_raw:
+            try:
+                int(letter)
+            except ValueError:
+                if letter == '-':
+                    amount += letter
+            else:
+                amount += letter
+    return amount
+
+
+def transform_params(params: list) -> List:
+    amount_str = params.pop(2)
+    params.insert(2, transform_amount(amount_str))
     return params
 
 
