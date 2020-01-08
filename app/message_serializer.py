@@ -76,8 +76,8 @@ def get_today_statistics() -> str:
     difference = incomes - expenses
     sign = '+' if difference >= 0 else '-'
     return (
-        f"Расходы сегодня: {expenses} {settings.CURRENCY}.\n"
-        f"Доходы сегодня: {incomes} {settings.CURRENCY}.\n"
+        f"Расходы сегодня: {expenses} {settings.CURRENCY}\n"
+        f"Доходы сегодня: {incomes} {settings.CURRENCY}\n"
         f"Итого: {sign}{abs(difference)} {settings.CURRENCY}\n"
         f"За текущий месяц: /month"
     )
@@ -94,8 +94,8 @@ def get_month_statistics() -> str:
     difference = incomes - expenses
     sign = '+' if difference >= 0 else '-'
     return (
-        f"Расходы в {current_month}: {expenses} {settings.CURRENCY}.\n"
-        f"Доходы в {current_month}: {incomes} {settings.CURRENCY}.\n"
+        f"Расходы в {current_month}: {expenses} {settings.CURRENCY}\n"
+        f"Доходы в {current_month}: {incomes} {settings.CURRENCY}\n"
         f"Итого: {sign}{abs(difference)} {settings.CURRENCY}"
     )
 
