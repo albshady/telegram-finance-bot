@@ -104,7 +104,7 @@ def add_income(message: types.Message):
         except ValueError:
             amount = int(income.amount[:-1])
         answer = (
-            f"Добавлен доход {amount} {settings.CURRENCY} на {income.category_name}.\n\n"
+            f"Добавлен доход {amount} {settings.CURRENCY} категории '{income.category_name}'.\n\n"
             f"{message_serializer.get_today_statistics()}"
         )
     bot.send_message(message.chat.id, answer)
