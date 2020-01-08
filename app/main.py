@@ -90,7 +90,7 @@ def del_expense(message: types.Message):
     bot.reply_to(message, answer)
 
 
-@bot.message_handler(func=lambda message: message.text.startswith('/i '))
+@bot.message_handler(commands=['i'])
 @is_mine
 def add_income(message: types.Message):
     """Добавляет новый доход"""
