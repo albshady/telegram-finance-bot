@@ -46,7 +46,7 @@ class Income(SpreadsheetItem):
 def insert(date_str: str, amount: int, description: str, category_name: str, is_expense=True) -> Expense or Income:
     (klass, sheet) = (Expense, expenses_sheet) if is_expense else (Income, incomes_sheet)
 
-    latest, _ = next(get_latest_items(of_expenses=True))
+    latest, _ = next(get_latest_items(of_expenses=is_expense))
     id = 1 if latest.id == '' else int(latest.id) + 1
     categories = get_categories(of_expenses=is_expense)
     print(categories)
@@ -124,5 +124,5 @@ def get_latest_items_sum(until: datetime.date = datetime.date.today(), days: int
 
 def get_categories(global_categories: bool = True, of_expenses: bool = True) -> List[str]:
     if global_categories:
-        col = 1 if of_expenses else 3
+        col = 1 if of_expenses else 4
         return sorted(categories_sheet.col_values(col)[1:])
