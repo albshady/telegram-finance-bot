@@ -1,7 +1,7 @@
 """ Работа с расходами — их добавление, удаление, статистики"""
 import datetime
 import re
-from typing import NamedTuple
+from typing import NamedTuple, Union
 
 import pytz
 
@@ -32,39 +32,47 @@ class Message(NamedTuple):
     description: str
 
 
-def add_income(raw_message: str) -> spreadsheet.Income:
+def add_item(raw_message: str, is_expense: bool) -> Union[spreadsheet.Expense, spreadsheet.Income]:
 
     parsed_message = _parse_message(raw_message)
-    categories = spreadsheet.get_categories(of_expenses=False)
+    categories = spreadsheet.get_categories(of_expenses=is_expense)
 
-    category = parsed_message.category_text.title() if parsed_message.category_text.title() in categories else 'Другое'
+    category = parsed_message.category_text.title()
+    description = parsed_message.description.title()
+    if category not in categories:
+        description = category
+        category = 'Другое'
 
     inserted = spreadsheet.insert(
         date_str=_get_now_formatted(),
         amount=parsed_message.amount,
-        description=parsed_message.description,
+        description=description,
         category_name=category,
-        is_expense=False,
+        is_expense=is_expense,
     )
     return inserted
 
 
-def add_expense(raw_message: str) -> spreadsheet.Expense:
-    """Добавляет новое сообщение.
-    Принимает на вход текст сообщения, пришедшего в бот."""
-    parsed_message = _parse_message(raw_message)
-    categories = spreadsheet.get_categories(of_expenses=True)
-
-    category = parsed_message.category_text.title() if parsed_message.category_text.title() in categories else 'Другое'
-
-    inserted = spreadsheet.insert(
-        date_str=_get_now_formatted(),
-        amount=parsed_message.amount,
-        description=parsed_message.description,
-        category_name=category,
-        is_expense=True,
-    )
-    return inserted
+# def add_expense(raw_message: str) -> spreadsheet.Expense:
+#     """Добавляет новую трату.
+#     Принимает на вход текст сообщения, пришедшего в бот."""
+#     parsed_message = _parse_message(raw_message)
+#     categories = spreadsheet.get_categories(of_expenses=True)
+#
+#     category = parsed_message.category_text.title()
+#     description = parsed_message.description.title()
+#     if category not in categories:
+#         description = category
+#         category = 'Другое'
+#
+#     inserted = spreadsheet.insert(
+#         date_str=_get_now_formatted(),
+#         amount=parsed_message.amount,
+#         description=description,
+#         category_name=category,
+#         is_expense=True,
+#     )
+#     return inserted
 
 
 def get_today_statistics() -> str:
@@ -115,21 +123,24 @@ def get_latest(number=5) -> str:
 def delete_expense(id: int) -> str:
     """Удаляет сообщение по его идентификатору"""
     try:
-        spreadsheet.delete_expense(id)
+        deleted_expense = spreadsheet.delete_expense(id)
     except exceptions.IncorrectId:
         message = "Пожалуйста, введи корректный id записи"
     except ValueError:
         message = f"Записи о расходе с id={id} не существует"
     else:
-        message = "Удалено!"
+        category = deleted_expense.category_name
+        category = category if category != 'Другое' else category + f' ({deleted_expense.description})'
+        message = (
+            f"Удалена трата!\n"
+            f"{deleted_expense.date}: {deleted_expense.amount} на {category}"
+        )
     return message
 
 
 def get_categories(global_categories: bool = True) -> str:
     expense_categories = spreadsheet.get_categories(global_categories=global_categories, of_expenses=True)
     income_categories = spreadsheet.get_categories(global_categories=global_categories, of_expenses=False)
-    print(expense_categories)
-    print(income_categories)
     message = "*Категории трат:*\n\n"
     message += ''.join([f'- {c}\n' for c in expense_categories])
     message += "\n\n*Категории доходов:*\n\n"
@@ -160,6 +171,8 @@ def _parse_message(raw_message: str) -> Message:
     description = regexp_result.group(4)
     if description:
         description = description.strip()[1:-1].lower()
+    else:
+        description = ''
     return Message(is_expense=is_expense, amount=int(amount), category_text=category_text, description=description)
 
 

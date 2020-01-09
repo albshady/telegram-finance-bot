@@ -85,8 +85,7 @@ def list_expenses(message: types.Message):
 def del_expense(message: types.Message):
     """Удаляет одну запись о расходе по её идентификатору"""
     row_id = int(message.text[4:])
-    message_serializer.delete_expense(row_id)
-    answer = "Удалил"
+    answer = message_serializer.delete_expense(row_id)
     bot.reply_to(message, answer)
 
 
@@ -95,7 +94,7 @@ def del_expense(message: types.Message):
 def add_income(message: types.Message):
     """Добавляет новый доход"""
     try:
-        income = message_serializer.add_income(message.text)
+        income = message_serializer.add_item(message.text, False)
     except exceptions.NotCorrectMessage as e:
         answer = str(e)
     else:
@@ -115,7 +114,7 @@ def add_income(message: types.Message):
 def add_expense(message: types.Message):
     """Добавляет новый расход"""
     try:
-        expense = message_serializer.add_expense(message.text)
+        expense = message_serializer.add_item(message.text, True)
     except exceptions.NotCorrectMessage as e:
         answer = str(e)
     else:

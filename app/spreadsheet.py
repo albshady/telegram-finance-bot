@@ -46,10 +46,13 @@ class Income(SpreadsheetItem):
 def insert(date_str: str, amount: int, description: str, category_name: str, is_expense=True) -> Expense or Income:
     (klass, sheet) = (Expense, expenses_sheet) if is_expense else (Income, incomes_sheet)
 
-    latest, _ = next(get_latest_items(of_expenses=is_expense))
-    id = 1 if latest.id == '' else int(latest.id) + 1
+    try:
+        latest, _ = next(get_latest_items(of_expenses=is_expense))
+    except StopIteration:
+        id = 1
+    else:
+        id = int(latest.id) + 1
     categories = get_categories(of_expenses=is_expense)
-    print(categories)
     if category_name in categories:
         category = category_name
     else:
