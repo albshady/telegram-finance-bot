@@ -107,7 +107,7 @@ def add_items(message: types.Message):
             except ValueError:
                 amount = int(response.amount[:-1])
 
-            category = response.description if response.category_name != settings.OTHER else response.category_name
+            category = response.description if response.category_name == settings.OTHER else response.category_name
             if type(response) is spreadsheet.Expense:
                 answer += f"Добавлены траты {amount} {settings.CURRENCY} на {category}.\n"
             else:
