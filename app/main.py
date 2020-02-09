@@ -8,7 +8,7 @@ from telebot import types
 from app import message_serializer, exceptions, settings, spreadsheet
 
 API_TOKEN = os.environ.get('API_TOKEN')
-AUTHOR_ID = os.environ.get('AUTHOR_ID')
+AUTHOR_ID = int(os.environ.get('AUTHOR_ID'))
 
 bot = telebot.TeleBot(API_TOKEN)
 server = Flask(__name__)
@@ -31,7 +31,6 @@ def is_mine(handler):
     def wrapper(message):
         if int(message.chat.id) != AUTHOR_ID:
             bot.send_message(message.chat.id, 'Permission denied')
-            print(f"{message.chat.id} != {AUTHOR_ID}")
             return
         return handler(message)
     return wrapper
