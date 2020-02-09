@@ -31,6 +31,7 @@ def is_mine(handler):
     def wrapper(message):
         if int(message.chat.id) != AUTHOR_ID:
             bot.send_message(message.chat.id, 'Permission denied')
+            print(f"{message.chat.id} != {AUTHOR_ID}")
             return
         return handler(message)
     return wrapper
