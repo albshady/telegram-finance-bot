@@ -1,7 +1,7 @@
 """ Работа с расходами — их добавление, удаление, статистики"""
 import datetime
 import re
-from typing import NamedTuple, Union
+from typing import NamedTuple, List, Union
 
 import pytz
 
@@ -32,47 +32,30 @@ class Message(NamedTuple):
     description: str
 
 
-def add_item(raw_message: str, is_expense: bool) -> Union[spreadsheet.Expense, spreadsheet.Income]:
+def add_items(raw_message: str) -> List[Union[spreadsheet.Expense, spreadsheet.Income]]:
 
-    parsed_message = _parse_message(raw_message)
-    categories = spreadsheet.get_categories(of_expenses=is_expense)
+    requests = raw_message.split('\n')
+    inserted = []
+    for request in requests:
+        parsed_message = _parse_message(request)
+        categories = spreadsheet.get_categories(of_expenses=parsed_message.is_expense)
 
-    category = parsed_message.category_text.title()
-    description = parsed_message.description.title()
-    if category not in categories:
-        description = category
-        category = 'Другое'
+        category = parsed_message.category_text.title()
+        description = parsed_message.description.title()
+        if category not in categories:
+            description = category
+            category = 'Другое'
 
-    inserted = spreadsheet.insert(
-        date_str=_get_now_formatted(),
-        amount=parsed_message.amount,
-        description=description,
-        category_name=category,
-        is_expense=is_expense,
-    )
+        inserted.append(
+            spreadsheet.insert(
+                date_str=_get_now_formatted(),
+                amount=parsed_message.amount,
+                description=description,
+                category_name=category,
+                is_expense=parsed_message.is_expense,
+            )
+        )
     return inserted
-
-
-# def add_expense(raw_message: str) -> spreadsheet.Expense:
-#     """Добавляет новую трату.
-#     Принимает на вход текст сообщения, пришедшего в бот."""
-#     parsed_message = _parse_message(raw_message)
-#     categories = spreadsheet.get_categories(of_expenses=True)
-#
-#     category = parsed_message.category_text.title()
-#     description = parsed_message.description.title()
-#     if category not in categories:
-#         description = category
-#         category = 'Другое'
-#
-#     inserted = spreadsheet.insert(
-#         date_str=_get_now_formatted(),
-#         amount=parsed_message.amount,
-#         description=description,
-#         category_name=category,
-#         is_expense=True,
-#     )
-#     return inserted
 
 
 def get_today_statistics() -> str:
@@ -150,13 +133,13 @@ def get_categories(global_categories: bool = True) -> str:
 
 def _parse_message(raw_message: str) -> Message:
     """Парсит текст пришедшего сообщения о новом расходе или доходе"""
-    regexp_result = re.match(r'^(/i)?\s*([\d]+)\s*([^(]*)\s*(\(.*\))?$', raw_message)  # should be .* instead of \S*
+    regexp_result = re.match(r'^(\+)?([\d]+)\s*([^(]*)\s*(\(.*\))?$', raw_message)
 
     if not regexp_result or not regexp_result.group(2) or not regexp_result.group(3):
         if regexp_result and regexp_result.group(1):
             error_message = (
                 "Не могу понять сообщение. Напишите сообщение в формате, "
-                "например:\n\\i 1500 стипендия"
+                "например:\n+1500 стипендия"
             )
         else:
             error_message = (

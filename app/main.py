@@ -5,9 +5,11 @@ import telebot
 from flask import Flask, request
 from telebot import types
 
-from app import message_serializer, exceptions, settings
+from app import message_serializer, exceptions, settings, spreadsheet
 
 API_TOKEN = os.environ.get('API_TOKEN')
+AUTHOR_ID = os.environ.get('AUTHOR_ID')
+
 bot = telebot.TeleBot(API_TOKEN)
 server = Flask(__name__)
 
@@ -27,7 +29,7 @@ def webhook():
 
 def is_mine(handler):
     def wrapper(message):
-        if int(message.chat.id) != settings.AUTHOR_ID:
+        if int(message.chat.id) != AUTHOR_ID:
             bot.send_message(message.chat.id, 'Permission denied')
         return handler(message)
     return wrapper
@@ -89,43 +91,29 @@ def del_expense(message: types.Message):
     bot.reply_to(message, answer)
 
 
-@bot.message_handler(commands=['i'])
-@is_mine
-def add_income(message: types.Message):
-    """Добавляет новый доход"""
-    try:
-        income = message_serializer.add_item(message.text, False)
-    except exceptions.NotCorrectMessage as e:
-        answer = str(e)
-    else:
-        try:
-            amount = int(income.amount)
-        except ValueError:
-            amount = int(income.amount[:-1])
-        answer = (
-            f"Добавлен доход {amount} {settings.CURRENCY} категории '{income.category_name}'.\n\n"
-            f"{message_serializer.get_today_statistics()}"
-        )
-    bot.send_message(message.chat.id, answer)
-
-
 @bot.message_handler(func=lambda message: True)
 @is_mine
-def add_expense(message: types.Message):
-    """Добавляет новый расход"""
+def add_items(message: types.Message):
+    """Добавляет новые записи, одна строка = одна запись"""
     try:
-        expense = message_serializer.add_item(message.text, True)
+        responses = message_serializer.add_items(message.text)
     except exceptions.NotCorrectMessage as e:
         answer = str(e)
     else:
-        try:
-            amount = int(expense.amount)
-        except ValueError:
-            amount = int(expense.amount[:-1])
-        answer = (
-            f"Добавлены траты {amount} {settings.CURRENCY} на {expense.category_name}.\n\n"
-            f"{message_serializer.get_today_statistics()}"
-        )
+        answer = ""
+        for response in responses:
+            try:
+                amount = int(response.amount)
+            except ValueError:
+                amount = int(response.amount[:-1])
+
+            category = response.description if response.category_name != settings.OTHER else response.category_name
+            if type(response) is spreadsheet.Expense:
+                answer += f"Добавлены траты {amount} {settings.CURRENCY} на {category}.\n"
+            else:
+                answer += f"Добавлен доход {amount} {settings.CURRENCY} на {category}.\n"
+
+        answer += f"\n{message_serializer.get_today_statistics()}"
     bot.send_message(message.chat.id, answer)
 
 

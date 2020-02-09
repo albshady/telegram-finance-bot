@@ -1,7 +1,7 @@
 import datetime
 import json
 import os
-from typing import NamedTuple, List, Tuple
+from typing import NamedTuple, List, Tuple, Union
 
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
@@ -43,7 +43,7 @@ class Income(SpreadsheetItem):
     """Structure of an income added to Google Spreadsheets"""
 
 
-def insert(date_str: str, amount: int, description: str, category_name: str, is_expense=True) -> Expense or Income:
+def insert(date_str: str, amount: int, description: str, category_name: str, is_expense=True) -> Union[Expense, Income]:
     (klass, sheet) = (Expense, expenses_sheet) if is_expense else (Income, incomes_sheet)
 
     try:
