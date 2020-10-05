@@ -43,7 +43,7 @@ class Income(SpreadsheetItem):
     """Structure of an income added to Google Spreadsheets"""
 
 
-def insert(date_str: str, amount: int, description: str, category_name: str, is_expense=True) -> Union[Expense, Income]:
+def insert(date_str: str, amount: int, description: str, category: str, is_expense=True) -> Union[Expense, Income]:
     (klass, sheet) = (Expense, expenses_sheet) if is_expense else (Income, incomes_sheet)
 
     try:
@@ -52,12 +52,7 @@ def insert(date_str: str, amount: int, description: str, category_name: str, is_
         id = 1
     else:
         id = int(latest.id) + 1
-    categories = get_categories(of_expenses=is_expense)
-    if category_name in categories:
-        category = category_name
-    else:
-        category = 'Другое'
-        description = f'({category_name}) {description}'
+
     item = klass(*[id, date_str, amount, description, category])
     sheet.insert_row(item, index=settings.FIRST_ROW)
     return item
@@ -150,7 +145,7 @@ def get_latest_items_sum(until: datetime.date = datetime.date.today(), days: int
     return items_sum
 
 
-def get_categories(global_categories: bool = True, of_expenses: bool = True) -> List[str]:
-    if global_categories:
-        col = 1 if of_expenses else 4
-        return sorted(categories_sheet.col_values(col)[1:])
+def get_categories() -> Tuple[List[str], List[str]]:
+    expenses = sorted(categories_sheet.col_values(settings.EXPENSES_COLUMN)[1:])
+    incomes = sorted(categories_sheet.col_values(settings.INCOMES_COLUMN)[1:])
+    return expenses, incomes
