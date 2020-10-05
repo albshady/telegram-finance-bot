@@ -8,3 +8,6 @@ SHEETS = {
     'incomes': 2,
     'categories': 3,
 }
+
+EXPENSES_COLUMN = 1
+INCOMES_COLUMN = 4

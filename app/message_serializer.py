@@ -35,13 +35,15 @@ class Message(NamedTuple):
 def add_items(raw_message: str) -> List[Union[spreadsheet.Expense, spreadsheet.Income]]:
 
     requests = raw_message.split('\n')
+    expense_categories, income_categories = spreadsheet.get_categories()
     inserted = []
     for request in requests:
         parsed_message = _parse_message(request)
-        categories = spreadsheet.get_categories(of_expenses=parsed_message.is_expense)
 
         category = parsed_message.category_text.title()
         description = parsed_message.description.title()
+
+        categories = expense_categories if parsed_message.is_expense else income_categories
         if category not in categories:
             description = category
             category = 'Другое'
@@ -51,7 +53,7 @@ def add_items(raw_message: str) -> List[Union[spreadsheet.Expense, spreadsheet.I
                 date_str=_get_now_formatted(),
                 amount=parsed_message.amount,
                 description=description,
-                category_name=category,
+                category=category,
                 is_expense=parsed_message.is_expense,
             )
         )
@@ -121,9 +123,8 @@ def delete_expense(id: int) -> str:
     return message
 
 
-def get_categories(global_categories: bool = True) -> str:
-    expense_categories = spreadsheet.get_categories(global_categories=global_categories, of_expenses=True)
-    income_categories = spreadsheet.get_categories(global_categories=global_categories, of_expenses=False)
+def get_categories() -> str:
+    expense_categories, income_categories = spreadsheet.get_categories()
     message = "*Категории трат:*\n\n"
     message += ''.join([f'- {c}\n' for c in expense_categories])
     message += "\n\n*Категории доходов:*\n\n"
