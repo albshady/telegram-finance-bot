@@ -12,6 +12,6 @@ pyasn1-modules==0.2.7
 pyTelegramBotAPI==3.6.6
 pytz==2019.3
 requests==2.20.0
-rsa==4.0
+rsa==4.1
 six==1.13.0
 Werkzeug==0.16.0
